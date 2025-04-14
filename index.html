@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin BIP39 Seed Generator (Dice Method)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        .left-panel {
+            flex: 0 0 300px;
+        }
+        .right-panel {
+            flex: 1;
+        }
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+        }
+        .dice-grid {
+            display: grid;
+            grid-template-columns: repeat(11, 30px);
+            gap: 3px;
+            margin: 10px 0;
+        }
+        .dice-input {
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            font-size: 16px;
+            -moz-appearance: textfield;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 0;
+        }
+        .dice-input::-webkit-outer-spin-button,
+        .dice-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .word-row {
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .word-row h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #495057;
+        }
+        .binary-display, .decimal-display, .word-display {
+            font-family: monospace;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+        .decimal-display { color: #0066cc; }
+        .word-display { 
+            color: #28a745;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .success {
+            color: #28a745;
+            margin: 10px 0;
+        }
+        .info-box {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .info-box ul, .info-box ol {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .info-box li {
+            margin: 3px 0;
+        }
+        .info-box ul li {
+            list-style-type: disc;
+            font-size: 13px;
+            color: #495057;
+        }
+        .info-box hr {
+            margin: 10px 0;
+            border: none;
+            border-top: 1px solid #dee2e6;
+        }
+        .info-box strong {
+            color: #212529;
+        }
+        .info-box p {
+            margin: 8px 0;
+        }
+        .seed-length-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .seed-length-selector select {
+            padding: 5px 10px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        .result-box {
+            margin-top: 15px;
+        }
+        .result-box textarea {
+            width: 100%;
+            height: 50px;
+            margin-top: 5px;
+            font-family: monospace;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            resize: none;
+        }
+        .calculation-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+        }
+        .calculation-box h4 {
+            margin: 0 0 10px 0;
+            color: #212529;
+            font-size: 14px;
+        }
+        .calc-step {
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        .calc-step strong {
+            color: #495057;
+        }
+        .monospace-text {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin: 4px 0;
+            word-break: break-all;
+            font-size: 12px;
+            color: #0066cc;
+        }
+        .result-box textarea {
+            width: 100%;
+            height: 50px;
+            margin: 5px 0;
+            font-family: monospace;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            resize: none;
+            background-color: #fff;
+        }
+        .verification-result.valid .monospace-text {
+            color: #28a745;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .verification-result.invalid .monospace-text {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bitcoin BIP39 Seed Generator (Dice Method)</h1>
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="info-box">
+                    <p><strong>Quick Guide:</strong></p>
+                    <ol>
+                        <li>Select seed length (12/18/24 words)</li>
+                        <li>Enter dice rolls (1-6):
+                            <ul>
+                                <li>1-3 → 0</li>
+                                <li>4-6 → 1</li>
+                            </ul>
+                        </li>
+                        <li>Click "Generate" when done</li>
+                    </ol>
+                    <hr style="border: none; border-top: 1px solid #dee2e6; margin: 10px 0;">
+                    <p><strong>How It Works:</strong></p>
+                    <ol>
+                        <li>Entropy Generation:
+                            <ul>
+                                <li>12 words: 128 bits (121 from dice + 7 checksum)</li>
+                                <li>18 words: 192 bits (186 from dice + 6 checksum)</li>
+                                <li>24 words: 256 bits (253 from dice + 3 checksum)</li>
+                            </ul>
+                        </li>
+                        <li>Dice to Binary:
+                            <ul>
+                                <li>Each die converts to 1 bit</li>
+                                <li>Rolls 1-3 become '0'</li>
+                                <li>Rolls 4-6 become '1'</li>
+                            </ul>
+                        </li>
+                        <li>Checksum Process:
+                            <ul>
+                                <li>SHA256 hash of entropy bits</li>
+                                <li>First N bits used as checksum</li>
+                                <li>N = entropy_length ÷ 32</li>
+                            </ul>
+                        </li>
+                        <li>Word Generation:
+                            <ul>
+                                <li>Each word uses 11 bits</li>
+                                <li>Last word combines entropy + checksum</li>
+                                <li>Bits convert to index (0-2047)</li>
+                                <li>Index maps to BIP39 word list</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <p><small><strong>Security Note:</strong> Use on air-gapped computer for maximum security. Each die roll provides 1 bit of entropy.</small></p>
+                </div>
+                
+                <div class="seed-length-selector">
+                    <label for="seedLength">Seed Length: </label>
+                    <select id="seedLength">
+                        <option value="12" selected>12 Words (128-bit)</option>
+                        <option value="18">18 Words (192-bit)</option>
+                        <option value="24">24 Words (256-bit)</option>
+                    </select>
+                    <button onclick="updateSeedLength()">Update</button>
+                </div>
+
+                <div class="controls">
+                    <button onclick="processDiceRolls()">Generate Seed</button>
+                    <button onclick="clearInputs()">Clear All</button>
+                </div>
+
+                <div id="result"></div>
+            </div>
+            
+            <div class="right-panel">
+                <div id="diceInputs"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="bip39.js"></script>
+    <script>
+        let currentSeedLength = 12;
+        
+        function updateSeedLength() {
+            currentSeedLength = parseInt(document.getElementById('seedLength').value);
+            createDiceInputs();
+            clearInputs();
+        }
+
+        function createDiceInputs() {
+            const container = document.getElementById('diceInputs');
+            container.innerHTML = '';
+            
+            for (let word = 0; word < currentSeedLength; word++) {
+                const wordDiv = document.createElement('div');
+                wordDiv.className = 'word-row';
+                wordDiv.innerHTML = `<h3>Word ${word + 1}</h3>`;
+                
+                const diceGrid = document.createElement('div');
+                diceGrid.className = 'dice-grid';
+                
+                let diceCount = 11;
+                if (word === currentSeedLength - 1) {
+                    diceCount = getLastWordDiceCount();
+                }
+                
+                for (let i = 0; i < diceCount; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '1';
+                    input.max = '6';
+                    input.className = 'dice-input';
+                    input.dataset.word = word;
+                    input.dataset.position = i;
+                    input.addEventListener('input', (e) => {
+                        validateInput(input);
+                        autoAdvance(e);
+                    });
+                    input.addEventListener('keydown', handleBackspace);
+                    diceGrid.appendChild(input);
+                }
+                
+                const binaryDisplay = document.createElement('div');
+                binaryDisplay.className = 'binary-display';
+                binaryDisplay.id = `binary-${word}`;
+                
+                const decimalDisplay = document.createElement('div');
+                decimalDisplay.className = 'decimal-display';
+                decimalDisplay.id = `decimal-${word}`;
+                
+                const wordDisplay = document.createElement('div');
+                wordDisplay.className = 'word-display';
+                wordDisplay.id = `word-${word}`;
+                
+                wordDiv.appendChild(diceGrid);
+                wordDiv.appendChild(binaryDisplay);
+                wordDiv.appendChild(decimalDisplay);
+                wordDiv.appendChild(wordDisplay);
+                container.appendChild(wordDiv);
+            }
+        }
+
+        function validateInput(input) {
+            const value = parseInt(input.value);
+            if (value < 1) input.value = 1;
+            if (value > 6) input.value = 6;
+        }
+
+        function clearInputs() {
+            const inputs = document.querySelectorAll('.dice-input');
+            inputs.forEach(input => input.value = '');
+            const displays = document.querySelectorAll('.binary-display, .decimal-display, .word-display');
+            displays.forEach(display => display.textContent = '');
+            document.getElementById('result').innerHTML = '';
+        }
+
+        function diceToBinary(diceValue) {
+            return diceValue >= 4 ? '1' : '0';
+        }
+
+        function binaryToDecimal(binary) {
+            return parseInt(binary, 2);
+        }
+
+        function calculateChecksum(binaryString) {
+            const hash = sha256(binaryString);
+            return hash.substring(0, 8);
+        }
+
+        function updateDisplays(word, binary, decimal) {
+            document.getElementById(`binary-${word}`).textContent = `Binary: ${binary}`;
+            document.getElementById(`decimal-${word}`).textContent = `Decimal: ${decimal}`;
+            document.getElementById(`word-${word}`).textContent = `Word: ${BIP39_WORDS[decimal]}`;
+        }
+
+        function autoAdvance(event) {
+            const input = event.target;
+            const value = input.value;
+            
+            if (value.length === 1 && parseInt(value) >= 1 && parseInt(value) <= 6) {
+                const currentWord = parseInt(input.dataset.word);
+                const currentPos = parseInt(input.dataset.position);
+                
+                // Find next input
+                let nextInput;
+                if (currentWord === currentSeedLength - 1 && currentPos === (getLastWordDiceCount() - 1)) {
+                    // Last input of last word - do nothing
+                    return;
+                } else if (currentPos === (currentWord === currentSeedLength - 1 ? getLastWordDiceCount() - 1 : 10)) {
+                    // Last input of current word - move to next word
+                    nextInput = document.querySelector(`input[data-word="${currentWord + 1}"][data-position="0"]`);
+                } else {
+                    // Move to next input in current word
+                    nextInput = document.querySelector(`input[data-word="${currentWord}"][data-position="${currentPos + 1}"]`);
+                }
+                
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        function handleBackspace(event) {
+            if (event.key === 'Backspace' && event.target.value === '') {
+                event.preventDefault();
+                const input = event.target;
+                const currentWord = parseInt(input.dataset.word);
+                const currentPos = parseInt(input.dataset.position);
+                
+                if (currentPos > 0) {
+                    // Move to previous input in current word
+                    const prevInput = document.querySelector(`input[data-word="${currentWord}"][data-position="${currentPos - 1}"]`);
+                    if (prevInput) {
+                        prevInput.focus();
+                    }
+                } else if (currentWord > 0) {
+                    // Move to last input of previous word
+                    const lastPosOfPrevWord = currentWord === currentSeedLength ? getLastWordDiceCount() - 1 : 10;
+                    const prevInput = document.querySelector(`input[data-word="${currentWord - 1}"][data-position="${lastPosOfPrevWord}"]`);
+                    if (prevInput) {
+                        prevInput.focus();
+                    }
+                }
+            }
+        }
+
+        function getLastWordDiceCount() {
+            // Calculate how many dice rolls we need for the last word based on entropy requirements
+            if (currentSeedLength === 12) return 7;  // 128 - (11 * 11) = 7 bits needed
+            if (currentSeedLength === 18) return 5;  // 192 - (17 * 11) = 5 bits needed
+            return 8;  // 256 - (23 * 11) = 8 bits needed
+        }
+
+        function verifyBIP39Seed(seedWords, entropyBits, finalChecksum) {
+            // 1. Verify seed length
+            if (![12, 18, 24].includes(seedWords.length)) {
+                return { valid: false, reason: `Invalid seed length: ${seedWords.length}. Must be 12, 18, or 24 words.` };
+            }
+
+            // 2. Verify all words are in BIP39 wordlist
+            for (let i = 0; i < seedWords.length; i++) {
+                const wordIndex = BIP39_WORDS.indexOf(seedWords[i]);
+                if (wordIndex === -1) {
+                    return { valid: false, reason: `Invalid word at position ${i + 1}: "${seedWords[i]}"` };
+                }
+            }
+
+            // 3. Verify checksum
+            const checksumBits = seedWords.length === 12 ? 4 : (seedWords.length === 18 ? 6 : 3);
+            const entropyBytes = [];
+            for (let i = 0; i < entropyBits.length; i += 8) {
+                entropyBytes.push(parseInt(entropyBits.slice(i, i + 8), 2));
+            }
+            
+            const checksum = calculateChecksum(String.fromCharCode(...entropyBytes));
+            const checksumBinary = parseInt(checksum.substring(0, 2), 16).toString(2).padStart(8, '0');
+            const expectedChecksum = checksumBinary.substring(0, checksumBits);
+            
+            if (expectedChecksum !== finalChecksum) {
+                return { valid: false, reason: `Invalid checksum. Expected: ${expectedChecksum}, Got: ${finalChecksum}` };
+            }
+
+            return { valid: true, reason: 'All verification checks passed!' };
+        }
+
+        function processDiceRolls() {
+            let entropyBits = '';
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            // Calculate required entropy bits
+            const entropyLength = currentSeedLength * 11 - (currentSeedLength === 12 ? 4 : (currentSeedLength === 18 ? 6 : 3));
+            
+            // Collect entropy bits from dice rolls
+            let totalBitsNeeded = entropyLength;
+            let currentWord = 0;
+            let currentDice = 0;
+
+            while (totalBitsNeeded > 0) {
+                const input = document.querySelector(`input[data-word="${currentWord}"][data-position="${currentDice}"]`);
+                if (!input) {
+                    resultDiv.innerHTML = `<div class="error">Not enough dice rolls for required entropy</div>`;
+                    return;
+                }
+
+                const value = parseInt(input.value);
+                if (isNaN(value) || value < 1 || value > 6) {
+                    resultDiv.innerHTML = `<div class="error">Please enter valid dice rolls (1-6) for Word ${currentWord + 1}, Die ${currentDice + 1}</div>`;
+                    return;
+                }
+
+                entropyBits += diceToBinary(value);
+                totalBitsNeeded--;
+
+                // Move to next dice position
+                currentDice++;
+                if (currentDice === (currentWord === currentSeedLength - 1 ? getLastWordDiceCount() : 11)) {
+                    currentDice = 0;
+                    currentWord++;
+                }
+            }
+
+            // Calculate checksum
+            const checksumBits = currentSeedLength === 12 ? 4 : (currentSeedLength === 18 ? 6 : 3);
+            
+            // Convert entropy bits to bytes for SHA256
+            const entropyBytes = [];
+            for (let i = 0; i < entropyBits.length; i += 8) {
+                entropyBytes.push(parseInt(entropyBits.slice(i, i + 8), 2));
+            }
+            
+            // Calculate checksum
+            const checksum = calculateChecksum(String.fromCharCode(...entropyBytes));
+            const checksumBinary = parseInt(checksum.substring(0, 2), 16).toString(2).padStart(8, '0');
+            const finalChecksum = checksumBinary.substring(0, checksumBits);
+
+            // Combine entropy and checksum
+            const finalBinary = entropyBits + finalChecksum;
+
+            // Generate words and update displays
+            const seedWords = [];
+            for (let i = 0; i < currentSeedLength; i++) {
+                const wordBinary = finalBinary.substr(i * 11, 11);
+                const decimal = binaryToDecimal(wordBinary);
+                const word = BIP39_WORDS[decimal];
+                
+                if (!word) {
+                    resultDiv.innerHTML = `<div class="error">Invalid binary sequence for word ${i + 1}: ${wordBinary} (decimal: ${decimal})</div>`;
+                    return;
+                }
+                
+                // Update displays for each word
+                updateDisplays(i, wordBinary, decimal);
+                seedWords.push(word);
+            }
+
+            // Display results
+            const verificationResult = verifyBIP39Seed(seedWords, entropyBits, finalChecksum);
+            resultDiv.innerHTML = `
+                <div class="success">
+                    <div class="result-box">
+                        <p><strong>Generated ${currentSeedLength}-word seed:</strong></p>
+                        <textarea readonly spellcheck="false">${seedWords.join(' ')}</textarea>
+                    </div>
+                    <div class="calculation-box">
+                        <h4>Checksum Calculation Details:</h4>
+                        <div class="calc-step">
+                            <strong>1. Initial Entropy (${entropyBits.length} bits):</strong>
+                            <div class="monospace-text">${entropyBits}</div>
+                        </div>
+                        <div class="calc-step">
+                            <strong>2. Entropy as Bytes:</strong>
+                            <div class="monospace-text">${entropyBytes.map(b => b.toString(16).padStart(2, '0')).join(' ')}</div>
+                        </div>
+                        <div class="calc-step">
+                            <strong>3. SHA256 Hash:</strong>
+                            <div class="monospace-text">${checksum}</div>
+                        </div>
+                        <div class="calc-step">
+                            <strong>4. First ${checksumBits} bits of Hash:</strong>
+                            <div class="monospace-text">${finalChecksum}</div>
+                        </div>
+                        <div class="calc-step">
+                            <strong>5. Final Binary (Entropy + Checksum):</strong>
+                            <div class="monospace-text">${finalBinary}</div>
+                        </div>
+                        <div class="calc-step verification-result ${verificationResult.valid ? 'valid' : 'invalid'}">
+                            <strong>6. BIP39 Verification:</strong>
+                            <div class="monospace-text">${verificationResult.reason}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize the page
+        createDiceInputs();
+    </script>
+</body>
+</html> 
